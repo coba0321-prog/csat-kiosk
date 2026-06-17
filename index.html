@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="受診アンケート">
+<title>受診アンケート</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif; background:#f0f4f8; overflow:hidden; user-select:none; -webkit-user-select:none; }
+
+/* ── ページ切り替え ── */
+.page { position:absolute; inset:0; display:none; flex-direction:column; }
+.page.active { display:flex; }
+
+/* ══════════════════════════════
+   患者入力ページ
+══════════════════════════════ */
+#page-csat { align-items:center; justify-content:center; padding:40px 32px; background:#f0f4f8; }
+
+.hospital-name { font-size:15px; font-weight:500; color:#7a8fa6; letter-spacing:.06em; margin-bottom:36px; }
+.main-question { font-size:clamp(22px,4vw,30px); font-weight:600; color:#1a2b3c; text-align:center; line-height:1.55; margin-bottom:44px; }
+
+.btn-group { display:flex; flex-direction:column; gap:16px; width:100%; max-width:420px; }
+.csat-btn { display:flex; align-items:center; gap:20px; padding:20px 26px; border-radius:20px; border:none; font-size:clamp(17px,2.5vw,22px); font-weight:600; cursor:pointer; transition:transform .12s,opacity .12s; -webkit-appearance:none; }
+.csat-btn:active { transform:scale(.97); opacity:.85; }
+.csat-btn:disabled { opacity:.45; pointer-events:none; }
+.csat-btn .emoji { font-size:clamp(26px,3.5vw,34px); }
+.csat-btn .label { flex:1; }
+.btn-happy   { background:#e6f7f1; color:#0a6644; }
+.btn-neutral { background:#eef1f5; color:#3a4a5a; }
+.btn-sad     { background:#fdf0ec; color:#9b3620; }
+
+.anon-note { margin-top:32px; font-size:13px; color:#9aaabb; display:flex; align-items:center; gap:6px; }
+
+/* サンクス */
+.screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px; background:#f0f4f8; opacity:0; pointer-events:none; transition:opacity .3s; }
+.screen.active { opacity:1; pointer-events:all; }
+.check-wrap { width:88px; height:88px; border-radius:50%; background:#e6f7f1; display:flex; align-items:center; justify-content:center; margin-bottom:28px; }
+.thanks-title { font-size:clamp(19px,3vw,26px); font-weight:600; color:#1a2b3c; text-align:center; margin-bottom:12px; line-height:1.5; }
+.thanks-sub { font-size:clamp(14px,2vw,17px); color:#5a7080; text-align:center; line-height:1.7; }
+.progress-wrap { margin-top:36px; width:180px; height:4px; background:#d8e4ee; border-radius:99px; overflow:hidden; }
+.progress-fill { height:100%; background:#1D9E75; border-radius:99px; }
+.progress-fill.run { transition:width 3s linear; }
+.countdown-txt { margin-top:10px; font-size:13px; color:#9aaabb; }
+
+/* Dashboard切り替えボタン（患者画面右下） */
+.dash-fab { position:fixed; bottom:24px; right:24px; width:48px; height:48px; border-radius:50%; background:#1D9E75; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 12px rgba(0,0,0,.18); z-index:100; }
+.dash-fab svg { width:22px; height:22px; }
+
+/* 衛生POP */
+.hygiene-badge { position:fixed; bottom:28px; left:24px; background:#fff; border-radius:12px; padding:9px 14px; display:flex; align-items:center; gap:7px; font-size:12px; color:#5a7080; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+
+/* landscape */
+@media(orientation:landscape){
+  .btn-group { flex-direction:row; max-width:660px; gap:14px; }
+  .csat-btn { flex-direction:column; align-items:center; text-align:center; padding:22px 18px; gap:10px; }
+}
+
+/* ══════════════════════════════
+   ダッシュボードページ
+══════════════════════════════ */
+#page-dash { background:#f0f4f8; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+
+.dash-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; flex-shrink:0; }
+.dash-header h2 { font-size:18px; font-weight:600; color:#1a2b3c; }
+.back-btn { display:flex; align-items:center; gap:6px; background:none; border:none; font-size:14px; color:#1D9E75; font-weight:500; cursor:pointer; padding:6px 0; }
+
+.period-tabs { display:flex; gap:8px; padding:16px 24px 0; flex-shrink:0; }
+.tab-btn { flex:1; padding:9px; border-radius:10px; border:1.5px solid #d0dde8; background:#fff; font-size:13px; font-weight:500; color:#5a7080; cursor:pointer; transition:all .15s; }
+.tab-btn.active { background:#1D9E75; border-color:#1D9E75; color:#fff; }
+
+.dash-body { padding:16px 24px 32px; display:flex; flex-direction:column; gap:16px; }
+
+/* KPIカード */
+.kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.kpi-card { background:#fff; border-radius:16px; padding:16px 14px; text-align:center; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.kpi-label { font-size:11px; color:#7a8fa6; margin-bottom:6px; }
+.kpi-value { font-size:28px; font-weight:600; color:#1a2b3c; line-height:1; }
+.kpi-sub { font-size:11px; margin-top:5px; }
+.kpi-green { color:#0a6644; }
+.kpi-gray  { color:#7a8fa6; }
+.kpi-red   { color:#9b3620; }
+
+/* 内訳バー */
+.breakdown-card { background:#fff; border-radius:16px; padding:18px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.card-title { font-size:13px; font-weight:600; color:#1a2b3c; margin-bottom:14px; }
+.bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.bar-row:last-child { margin-bottom:0; }
+.bar-emoji { font-size:18px; width:24px; }
+.bar-lbl { font-size:12px; color:#5a7080; width:30px; flex-shrink:0; }
+.bar-bg { flex:1; height:12px; background:#eef1f5; border-radius:99px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:99px; transition:width .6s ease; }
+.bar-cnt { font-size:12px; color:#1a2b3c; width:36px; text-align:right; flex-shrink:0; }
+
+/* トレンドグラフ */
+.trend-card { background:#fff; border-radius:16px; padding:18px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.trend-svg-wrap { width:100%; overflow:hidden; }
+
+/* ローディング・エラー */
+.status-msg { text-align:center; padding:32px; font-size:14px; color:#7a8fa6; }
+
+/* landscape dashboard */
+@media(orientation:landscape){
+  .kpi-row { grid-template-columns:repeat(3,1fr); }
+  .dash-body { padding:14px 24px 24px; gap:14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 患者入力ページ ══ -->
+<div id="page-csat" class="page active">
+
+  <!-- CSAT入力 -->
+  <div id="screen-main" class="screen active">
+    <p class="hospital-name">さとう記念病院</p>
+    <h1 class="main-question">本日の当院の受診は<br>いかがでしたか？</h1>
+    <div class="btn-group">
+      <button class="csat-btn btn-happy"   onclick="onTap('satisfied')">
+        <span class="emoji">😀</span><span class="label">満足</span>
+      </button>
+      <button class="csat-btn btn-neutral" onclick="onTap('neutral')">
+        <span class="emoji">😐</span><span class="label">普通</span>
+      </button>
+      <button class="csat-btn btn-sad"     onclick="onTap('dissatisfied')">
+        <span class="emoji">🙁</span><span class="label">不満</span>
+      </button>
+    </div>
+    <p class="anon-note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      回答は完全に匿名です
+    </p>
+  </div>
+
+  <!-- サンクス -->
+  <div id="screen-thanks" class="screen">
+    <div class="check-wrap">
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" width="52" height="52">
+        <circle cx="26" cy="26" r="26" fill="#C8EFE0"/>
+        <path d="M14 27l9 9 15-16" stroke="#0a6644" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 class="thanks-title">ご協力ありがとうございました。</h2>
+    <p class="thanks-sub">どうぞ気をつけてお帰りください。</p>
+    <div class="progress-wrap"><div class="progress-fill" id="progress-fill" style="width:100%"></div></div>
+    <p class="countdown-txt" id="countdown-txt">3秒後にリセットします</p>
+  </div>
+
+  <!-- ダッシュボードへFAB -->
+  <button class="dash-fab" onclick="showDash()" aria-label="ダッシュボードを開く">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  </button>
+
+  <!-- 衛生POP -->
+  <div class="hygiene-badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    定期的に除菌しています
+  </div>
+</div>
+
+<!-- ══ ダッシュボードページ ══ -->
+<div id="page-dash" class="page">
+  <div class="dash-header">
+    <h2>📊 集計ダッシュボード</h2>
+    <button class="back-btn" onclick="showCsat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      入力画面に戻る
+    </button>
+  </div>
+
+  <div class="period-tabs">
+    <button class="tab-btn active" onclick="setPeriod('today',this)">今日</button>
+    <button class="tab-btn" onclick="setPeriod('week',this)">今週</button>
+    <button class="tab-btn" onclick="setPeriod('month',this)">今月</button>
+  </div>
+
+  <div class="dash-body">
+    <div id="dash-content"><p class="status-msg">読み込み中…</p></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// 設定：Apps ScriptのURLをここに貼り付けてください
+// ══════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby0WGneiorsY9-VjhKVaI4wDi65qlWs1yVZN_aMgEQm4Jxd439kOEbNO64bMBjj9tI/exec';
+
+// ══ CSAT送信 ══
+let busy = false;
+
+function onTap(rating) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('.csat-btn').forEach(b => b.disabled = true);
+
+  // スプレッドシートへ送信（no-cors：GASへのクロスオリジン送信対応）
+  const payload = { rating, timestamp: new Date().toISOString() };
+  if (GAS_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    const form = new FormData();
+    form.append('payload', JSON.stringify(payload));
+    fetch(GAS_URL, { method:'POST', mode:'no-cors', body: form }).catch(()=>{});
+  }
+
+  // サンクス画面
+  document.getElementById('screen-main').classList.remove('active');
+  document.getElementById('screen-thanks').classList.add('active');
+
+  const fill = document.getElementById('progress-fill');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  void fill.offsetWidth;
+  fill.style.transition = 'width 3s linear';
+  fill.style.width = '0%';
+
+  let s = 3;
+  const txt = document.getElementById('countdown-txt');
+  const iv = setInterval(()=>{
+    s--;
+    txt.textContent = s > 0 ? s+'秒後にリセットします' : 'リセット中…';
+    if(s<=0){ clearInterval(iv); resetCsat(); }
+  },1000);
+}
+
+function resetCsat() {
+  document.getElementById('screen-thanks').classList.remove('active');
+  document.getElementById('screen-main').classList.add('active');
+  document.querySelectorAll('.csat-btn').forEach(b => b.disabled = false);
+  busy = false;
+}
+
+// ══ ページ切り替え ══
+function showDash() {
+  document.getElementById('page-csat').classList.remove('active');
+  document.getElementById('page-dash').classList.add('active');
+  loadDash();
+}
+function showCsat() {
+  document.getElementById('page-dash').classList.remove('active');
+  document.getElementById('page-csat').classList.add('active');
+}
+
+// ══ ダッシュボード ══
+let currentPeriod = 'today';
+
+function setPeriod(period, btn) {
+  currentPeriod = period;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadDash();
+}
+
+async function loadDash() {
+  const el = document.getElementById('dash-content');
+  el.innerHTML = '<p class="status-msg">読み込み中…</p>';
+
+  if (GAS_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    // GAS未設定：空データで0件表示
+    el.innerHTML = renderDash({ satisfied:0, neutral:0, dissatisfied:0, trend:[] });
+    return;
+  }
+
+  try {
+    const res = await fetch(GAS_URL + '?period=' + currentPeriod);
+    const data = await res.json();
+    el.innerHTML = renderDash(data);
+  } catch(e) {
+    el.innerHTML = '<p class="status-msg">データ取得に失敗しました。<br>接続を確認してください。</p>';
+  }
+}
+
+function renderDash(d) {
+  const total = d.satisfied + d.neutral + d.dissatisfied;
+  const positive = total > 0 ? Math.round((d.satisfied + d.neutral) / total * 100) : 0;
+  const satPct   = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
+  const neuPct   = total > 0 ? Math.round(d.neutral   / total * 100) : 0;
+  const disPct   = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
+
+  // トレンドSVG
+  const pts = (d.trend || []);
+  const trendSvg = pts.length >= 2 ? buildTrend(pts) : '<p style="font-size:12px;color:#9aaabb;text-align:center;padding:12px 0;">データ蓄積中…</p>';
+
+  return `
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">ポジティブ率</div>
+      <div class="kpi-value kpi-green">${positive}%</div>
+      <div class="kpi-sub kpi-gray">合格ライン 80%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">総回答数</div>
+      <div class="kpi-value">${total}</div>
+      <div class="kpi-sub kpi-gray">件</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">満足</div>
+      <div class="kpi-value kpi-green">${satPct}%</div>
+      <div class="kpi-sub kpi-gray">${d.satisfied}件</div>
+    </div>
+  </div>
+
+  <div class="breakdown-card">
+    <div class="card-title">回答内訳</div>
+    <div class="bar-row">
+      <span class="bar-emoji">😀</span>
+      <span class="bar-lbl">満足</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${satPct}%;background:#1D9E75"></div></div>
+      <span class="bar-cnt">${d.satisfied}件</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-emoji">😐</span>
+      <span class="bar-lbl">普通</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:#7a8fa6"></div></div>
+      <span class="bar-cnt">${d.neutral}件</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-emoji">🙁</span>
+      <span class="bar-lbl">不満</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${disPct}%;background:#D85A30"></div></div>
+      <span class="bar-cnt">${d.dissatisfied}件</span>
+    </div>
+  </div>
+
+  <div class="trend-card">
+    <div class="card-title">ポジティブ率トレンド</div>
+    <div class="trend-svg-wrap">${trendSvg}</div>
+  </div>`;
+}
+
+function buildTrend(pts) {
+  const W=320, H=90, pad=24;
+  const vals = pts.map(p=>p.value);
+  const labels = pts.map(p=>p.label);
+  const max=100, min=0;
+  const xStep=(W-pad*2)/(pts.length-1);
+  const toY=v=>H-pad-(v-min)/(max-min)*(H-pad*2);
+  const toX=i=>pad+i*xStep;
+
+  let path='M'+pts.map((p,i)=>`${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join('L');
+  let area=path+`L${toX(pts.length-1).toFixed(1)},${H} L${toX(0).toFixed(1)},${H} Z`;
+
+  const dots=pts.map((p,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.value).toFixed(1)}" r="4" fill="#1D9E75"/>`).join('');
+  const xlbls=labels.map((l,i)=>`<text x="${toX(i).toFixed(1)}" y="${H}" font-size="9" fill="#9aaabb" text-anchor="middle">${l}</text>`).join('');
+  const lastVal=vals[vals.length-1];
+  const lastX=toX(pts.length-1);
+  const lastY=toY(lastVal);
+
+  return `<svg viewBox="0 0 ${W} ${H+4}" xmlns="http://www.w3.org/2000/svg" style="width:100%">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1D9E75" stop-opacity=".15"/>
+        <stop offset="100%" stop-color="#1D9E75" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <line x1="${pad}" y1="${toY(80).toFixed(1)}" x2="${W-pad}" y2="${toY(80).toFixed(1)}" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="${pad+2}" y="${(toY(80)-3).toFixed(1)}" font-size="9" fill="#bbb">80%</text>
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${path}" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${lastX}" y="${(lastY-8).toFixed(1)}" font-size="10" fill="#0a6644" font-weight="600" text-anchor="middle">${lastVal}%</text>
+    ${xlbls}
+  </svg>`;
+}
+
+// ══ GAS URLをここに貼り付けてください ══
+// 例: const GAS_URL = 'https://script.google.com/macros/s/xxxxx/exec';
+</script>
+</body>
+</html>
