@@ -11,18 +11,13 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif; background:#f0f4f8; overflow:hidden; user-select:none; -webkit-user-select:none; }
 
-/* ── ページ切り替え ── */
 .page { position:absolute; inset:0; display:none; flex-direction:column; }
 .page.active { display:flex; }
 
-/* ══════════════════════════════
-   患者入力ページ
-══════════════════════════════ */
+/* ══ 患者入力ページ ══ */
 #page-csat { align-items:center; justify-content:center; padding:40px 32px; background:#f0f4f8; }
-
 .hospital-name { font-size:15px; font-weight:500; color:#7a8fa6; letter-spacing:.06em; margin-bottom:36px; }
 .main-question { font-size:clamp(22px,4vw,30px); font-weight:600; color:#1a2b3c; text-align:center; line-height:1.55; margin-bottom:44px; }
-
 .btn-group { display:flex; flex-direction:column; gap:16px; width:100%; max-width:420px; }
 .csat-btn { display:flex; align-items:center; gap:20px; padding:20px 26px; border-radius:20px; border:none; font-size:clamp(17px,2.5vw,22px); font-weight:600; cursor:pointer; transition:transform .12s,opacity .12s; -webkit-appearance:none; }
 .csat-btn:active { transform:scale(.97); opacity:.85; }
@@ -32,10 +27,9 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 .btn-happy   { background:#e6f7f1; color:#0a6644; }
 .btn-neutral { background:#eef1f5; color:#3a4a5a; }
 .btn-sad     { background:#fdf0ec; color:#9b3620; }
-
 .anon-note { margin-top:32px; font-size:13px; color:#9aaabb; display:flex; align-items:center; gap:6px; }
 
-/* サンクス */
+/* サンクス画面 */
 .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px; background:#f0f4f8; opacity:0; pointer-events:none; transition:opacity .3s; }
 .screen.active { opacity:1; pointer-events:all; }
 .check-wrap { width:88px; height:88px; border-radius:50%; background:#e6f7f1; display:flex; align-items:center; justify-content:center; margin-bottom:28px; }
@@ -43,35 +37,44 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 .thanks-sub { font-size:clamp(14px,2vw,17px); color:#5a7080; text-align:center; line-height:1.7; }
 .progress-wrap { margin-top:36px; width:180px; height:4px; background:#d8e4ee; border-radius:99px; overflow:hidden; }
 .progress-fill { height:100%; background:#1D9E75; border-radius:99px; }
-.progress-fill.run { transition:width 3s linear; }
 .countdown-txt { margin-top:10px; font-size:13px; color:#9aaabb; }
 
-/* Dashboard切り替えボタン（患者画面右下） */
-.dash-fab { position:fixed; bottom:24px; right:24px; width:48px; height:48px; border-radius:50%; background:#1D9E75; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 12px rgba(0,0,0,.18); z-index:100; }
-.dash-fab svg { width:22px; height:22px; }
+/* スタッフ用ダッシュボードボタン（長押し起動） */
+.dash-fab { position:fixed; bottom:24px; right:24px; width:48px; height:48px; border-radius:50%; background:#ccd8e0; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.12); z-index:100; opacity:0.5; }
+.dash-fab svg { width:20px; height:20px; }
+.dash-fab-hint { position:fixed; bottom:78px; right:16px; font-size:10px; color:#aab; background:#fff; padding:4px 8px; border-radius:6px; box-shadow:0 1px 6px rgba(0,0,0,.1); display:none; }
+.dash-fab-hint.show { display:block; }
 
 /* 衛生POP */
 .hygiene-badge { position:fixed; bottom:28px; left:24px; background:#fff; border-radius:12px; padding:9px 14px; display:flex; align-items:center; gap:7px; font-size:12px; color:#5a7080; box-shadow:0 2px 10px rgba(0,0,0,.08); }
 
-/* landscape */
+/* 最終回答・経過時間 */
+.last-answer { position:fixed; top:16px; right:16px; font-size:11px; color:#aab; background:#fff; padding:4px 10px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.last-answer.warn { background:#fff0f0; color:#c0392b; font-weight:600; }
+
+/* 曜日別カード */
+.weekday-card { background:#fff; border-radius:16px; padding:18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.weekday-row { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:10px; }
+.weekday-col { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.weekday-label { font-size:10px; color:#7a8fa6; }
+.weekday-bar-wrap { width:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:60px; }
+.weekday-bar { width:70%; border-radius:4px 4px 0 0; min-height:2px; transition:height .5s ease; }
+.weekday-pct { font-size:9px; color:#1a2b3c; margin-top:2px; }
+
 @media(orientation:landscape){
   .btn-group { flex-direction:row; max-width:660px; gap:14px; }
   .csat-btn { flex-direction:column; align-items:center; text-align:center; padding:22px 18px; gap:10px; }
 }
 
-/* ══════════════════════════════
-   ダッシュボードページ
-══════════════════════════════ */
+/* ══ ダッシュボードページ ══ */
 #page-dash { background:#f0f4f8; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-
 .dash-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; flex-shrink:0; }
 .dash-header h2 { font-size:18px; font-weight:600; color:#1a2b3c; }
+.dash-updated { font-size:11px; color:#9aaabb; margin-top:3px; }
 .back-btn { display:flex; align-items:center; gap:6px; background:none; border:none; font-size:14px; color:#1D9E75; font-weight:500; cursor:pointer; padding:6px 0; }
-
 .period-tabs { display:flex; gap:8px; padding:16px 24px 0; flex-shrink:0; }
 .tab-btn { flex:1; padding:9px; border-radius:10px; border:1.5px solid #d0dde8; background:#fff; font-size:13px; font-weight:500; color:#5a7080; cursor:pointer; transition:all .15s; }
 .tab-btn.active { background:#1D9E75; border-color:#1D9E75; color:#fff; }
-
 .dash-body { padding:16px 24px 32px; display:flex; flex-direction:column; gap:16px; }
 
 /* KPIカード */
@@ -82,10 +85,13 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 .kpi-sub { font-size:11px; margin-top:5px; }
 .kpi-green { color:#0a6644; }
 .kpi-gray  { color:#7a8fa6; }
-.kpi-red   { color:#9b3620; }
+.kpi-red   { color:#c0392b; }
+
+/* 警告バナー */
+.alert-banner { background:#fff0f0; border:1.5px solid #f5c4c4; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:10px; font-size:13px; color:#9b3620; font-weight:500; }
 
 /* 内訳バー */
-.breakdown-card { background:#fff; border-radius:16px; padding:18px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.breakdown-card { background:#fff; border-radius:16px; padding:18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
 .card-title { font-size:13px; font-weight:600; color:#1a2b3c; margin-bottom:14px; }
 .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .bar-row:last-child { margin-bottom:0; }
@@ -96,13 +102,10 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 .bar-cnt { font-size:12px; color:#1a2b3c; width:36px; text-align:right; flex-shrink:0; }
 
 /* トレンドグラフ */
-.trend-card { background:#fff; border-radius:16px; padding:18px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+.trend-card { background:#fff; border-radius:16px; padding:18px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
 .trend-svg-wrap { width:100%; overflow:hidden; }
-
-/* ローディング・エラー */
 .status-msg { text-align:center; padding:32px; font-size:14px; color:#7a8fa6; }
 
-/* landscape dashboard */
 @media(orientation:landscape){
   .kpi-row { grid-template-columns:repeat(3,1fr); }
   .dash-body { padding:14px 24px 24px; gap:14px; }
@@ -113,8 +116,6 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 
 <!-- ══ 患者入力ページ ══ -->
 <div id="page-csat" class="page active">
-
-  <!-- CSAT入力 -->
   <div id="screen-main" class="screen active">
     <p class="hospital-name">さとう記念病院</p>
     <h1 class="main-question">本日の当院の受診は<br>いかがでしたか？</h1>
@@ -138,7 +139,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
   <!-- サンクス -->
   <div id="screen-thanks" class="screen">
     <div class="check-wrap">
-      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" width="52" height="52">
+      <svg viewBox="0 0 52 52" fill="none" width="52" height="52">
         <circle cx="26" cy="26" r="26" fill="#C8EFE0"/>
         <path d="M14 27l9 9 15-16" stroke="#0a6644" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -149,13 +150,19 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
     <p class="countdown-txt" id="countdown-txt">3秒後にリセットします</p>
   </div>
 
-  <!-- ダッシュボードへFAB -->
-  <button class="dash-fab" onclick="showDash()" aria-label="ダッシュボードを開く">
+  <!-- 最終回答時刻 -->
+  <div class="last-answer" id="last-answer" style="display:none">最終回答：<span id="last-answer-time"></span></div>
+
+  <!-- ダッシュボードボタン（長押し2秒で開く） -->
+  <button class="dash-fab" id="dash-fab" aria-label="ダッシュボード（長押し）"
+    onmousedown="startHold()" onmouseup="cancelHold()" onmouseleave="cancelHold()"
+    ontouchstart="startHold()" ontouchend="cancelHold()">
     <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
       <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
     </svg>
   </button>
+  <div class="dash-fab-hint" id="dash-hint">長押しでダッシュボードを開きます</div>
 
   <!-- 衛生POP -->
   <div class="hygiene-badge">
@@ -167,19 +174,21 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 <!-- ══ ダッシュボードページ ══ -->
 <div id="page-dash" class="page">
   <div class="dash-header">
-    <h2>📊 集計ダッシュボード</h2>
+    <div>
+      <h2>📊 集計ダッシュボード</h2>
+      <div class="dash-updated" id="dash-updated"></div>
+    </div>
     <button class="back-btn" onclick="showCsat()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       入力画面に戻る
     </button>
   </div>
-
   <div class="period-tabs">
     <button class="tab-btn active" onclick="setPeriod('today',this)">今日</button>
     <button class="tab-btn" onclick="setPeriod('week',this)">今週</button>
     <button class="tab-btn" onclick="setPeriod('month',this)">今月</button>
+    <button class="tab-btn" onclick="setPeriod('weekday',this)">曜日別</button>
   </div>
-
   <div class="dash-body">
     <div id="dash-content"><p class="status-msg">読み込み中…</p></div>
   </div>
@@ -187,7 +196,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 
 <script>
 // ══════════════════════════════════════════════
-// 設定：Apps ScriptのURLをここに貼り付けてください
+// ▼ Apps ScriptのURLをここに設定
 // ══════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby0WGneiorsY9-VjhKVaI4wDi65qlWs1yVZN_aMgEQm4Jxd439kOEbNO64bMBjj9tI/exec';
 
@@ -199,15 +208,18 @@ function onTap(rating) {
   busy = true;
   document.querySelectorAll('.csat-btn').forEach(b => b.disabled = true);
 
-  // スプレッドシートへ送信（no-cors：GASへのクロスオリジン送信対応）
+  // スプレッドシートへ送信
   const payload = { rating, timestamp: new Date().toISOString() };
-  if (GAS_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
-    const form = new FormData();
-    form.append('payload', JSON.stringify(payload));
-    fetch(GAS_URL, { method:'POST', mode:'no-cors', body: form }).catch(()=>{});
-  }
+  const form = new FormData();
+  form.append('payload', JSON.stringify(payload));
+  fetch(GAS_URL, { method:'POST', mode:'no-cors', body: form }).catch(()=>{});
 
-  // サンクス画面
+  // 最終回答時刻を更新
+  lastAnswerTime = new Date();
+  updateElapsed();
+  document.getElementById('last-answer').style.display = 'block';
+
+  // サンクス画面へ
   document.getElementById('screen-main').classList.remove('active');
   document.getElementById('screen-thanks').classList.add('active');
 
@@ -232,6 +244,49 @@ function resetCsat() {
   document.getElementById('screen-main').classList.add('active');
   document.querySelectorAll('.csat-btn').forEach(b => b.disabled = false);
   busy = false;
+}
+
+// ══ 最終回答からの経過時間タイマー ══
+let lastAnswerTime = null;
+
+function updateElapsed() {
+  if (!lastAnswerTime) return;
+  const el = document.getElementById('last-answer');
+  const elTime = document.getElementById('last-answer-time');
+  const diff = Math.floor((Date.now() - lastAnswerTime.getTime()) / 60000); // 分
+  const hm = lastAnswerTime.getHours() + ':' + String(lastAnswerTime.getMinutes()).padStart(2,'0');
+
+  if (diff < 1) {
+    elTime.textContent = hm + '（たった今）';
+    el.classList.remove('warn');
+  } else if (diff < 30) {
+    elTime.textContent = hm + '（' + diff + '分前）';
+    el.classList.remove('warn');
+  } else {
+    elTime.textContent = hm + '（' + diff + '分経過）';
+    el.classList.add('warn'); // 30分以上で警告色
+  }
+}
+// 1分ごとに経過時間を更新
+setInterval(updateElapsed, 60000);
+
+// ══ ダッシュボード長押し制御（2秒） ══
+let holdTimer = null;
+let holdProgress = 0;
+let holdInterval = null;
+
+function startHold() {
+  const hint = document.getElementById('dash-hint');
+  hint.classList.add('show');
+  holdTimer = setTimeout(()=>{
+    hint.classList.remove('show');
+    showDash();
+  }, 2000);
+}
+function cancelHold() {
+  clearTimeout(holdTimer);
+  clearInterval(holdInterval);
+  document.getElementById('dash-hint').classList.remove('show');
 }
 
 // ══ ページ切り替え ══
@@ -259,37 +314,56 @@ async function loadDash() {
   const el = document.getElementById('dash-content');
   el.innerHTML = '<p class="status-msg">読み込み中…</p>';
 
-  if (GAS_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-    // GAS未設定：空データで0件表示
-    el.innerHTML = renderDash({ satisfied:0, neutral:0, dissatisfied:0, trend:[] });
-    return;
-  }
-
   try {
-    const res = await fetch(GAS_URL + '?period=' + currentPeriod);
+    // 曜日別は月単位データを取得して集計
+    const period = currentPeriod === 'weekday' ? 'month' : currentPeriod;
+    const res  = await fetch(GAS_URL + '?period=' + period);
     const data = await res.json();
-    el.innerHTML = renderDash(data);
+
+    el.innerHTML = currentPeriod === 'weekday'
+      ? renderWeekday(data)
+      : renderDash(data);
+
+    // 最終更新時刻
+    const now = new Date();
+    document.getElementById('dash-updated').textContent =
+      '最終更新：' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
   } catch(e) {
     el.innerHTML = '<p class="status-msg">データ取得に失敗しました。<br>接続を確認してください。</p>';
   }
 }
 
 function renderDash(d) {
-  const total = d.satisfied + d.neutral + d.dissatisfied;
+  const total    = d.satisfied + d.neutral + d.dissatisfied;
   const positive = total > 0 ? Math.round((d.satisfied + d.neutral) / total * 100) : 0;
-  const satPct   = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
-  const neuPct   = total > 0 ? Math.round(d.neutral   / total * 100) : 0;
+  const satPct   = total > 0 ? Math.round(d.satisfied    / total * 100) : 0;
+  const neuPct   = total > 0 ? Math.round(d.neutral      / total * 100) : 0;
   const disPct   = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
+
+  // ポジティブ率が80%未満なら赤・警告バナー表示
+  const posClass  = positive >= 80 ? 'kpi-green' : 'kpi-red';
+  const alertHtml = (total > 0 && positive < 80)
+    ? `<div class="alert-banner">⚠️ ポジティブ率が合格ライン（80%）を下回っています</div>`
+    : '';
+
+  // 不満が多い場合の追加警告
+  const disAlert = (total >= 5 && disPct >= 30)
+    ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不満の割合が${disPct}%と高くなっています</div>`
+    : '';
 
   // トレンドSVG
   const pts = (d.trend || []);
-  const trendSvg = pts.length >= 2 ? buildTrend(pts) : '<p style="font-size:12px;color:#9aaabb;text-align:center;padding:12px 0;">データ蓄積中…</p>';
+  const trendSvg = pts.length >= 2
+    ? buildTrend(pts)
+    : '<p style="font-size:12px;color:#9aaabb;text-align:center;padding:12px 0;">データが2件以上になるとグラフが表示されます</p>';
 
   return `
+  ${alertHtml}
+  ${disAlert}
   <div class="kpi-row">
     <div class="kpi-card">
       <div class="kpi-label">ポジティブ率</div>
-      <div class="kpi-value kpi-green">${positive}%</div>
+      <div class="kpi-value ${posClass}">${positive}%</div>
       <div class="kpi-sub kpi-gray">合格ライン 80%</div>
     </div>
     <div class="kpi-card">
@@ -332,10 +406,59 @@ function renderDash(d) {
   </div>`;
 }
 
+function renderWeekday(d) {
+  // trendデータから曜日別に集計（月データのtrendに曜日ラベルが入っている）
+  const days = ['日','月','火','水','木','金','土'];
+  const map = {};
+  days.forEach(day => map[day] = { pos:0, total:0 });
+
+  (d.trend || []).forEach(p => {
+    if (map[p.label] !== undefined) {
+      map[p.label].pos   += p.value;
+      map[p.label].total += 1;
+    }
+  });
+
+  const bars = days.map(day => {
+    const v = map[day];
+    const avg = v.total > 0 ? Math.round(v.pos / v.total) : null;
+    const color = avg === null ? '#e0e0e0' : avg >= 80 ? '#1D9E75' : avg >= 60 ? '#f0a500' : '#D85A30';
+    const h = avg !== null ? Math.round(avg * 0.55) : 2;
+    return `<div class="weekday-col">
+      <div class="weekday-bar-wrap">
+        <div class="weekday-bar" style="height:${h}px;background:${color};"></div>
+      </div>
+      <div class="weekday-label">${day}</div>
+      <div class="weekday-pct">${avg !== null ? avg+'%' : '-'}</div>
+    </div>`;
+  }).join('');
+
+  const total = d.satisfied + d.neutral + d.dissatisfied;
+  const positive = total > 0 ? Math.round((d.satisfied + d.neutral) / total * 100) : 0;
+  const posClass = positive >= 80 ? 'kpi-green' : 'kpi-red';
+
+  return `
+  <div class="kpi-row" style="grid-template-columns:repeat(2,1fr);">
+    <div class="kpi-card">
+      <div class="kpi-label">今月ポジティブ率</div>
+      <div class="kpi-value ${posClass}">${positive}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">今月総回答数</div>
+      <div class="kpi-value">${total}件</div>
+    </div>
+  </div>
+  <div class="weekday-card">
+    <div class="card-title">曜日別 ポジティブ率（今月平均）</div>
+    <div class="weekday-row">${bars}</div>
+    <div style="margin-top:10px;display:flex;gap:12px;font-size:10px;color:#7a8fa6;">
+      <span>🟢 80%以上</span><span>🟡 60〜79%</span><span>🔴 60%未満</span>
+    </div>
+  </div>`;
+}
+
 function buildTrend(pts) {
   const W=320, H=90, pad=24;
-  const vals = pts.map(p=>p.value);
-  const labels = pts.map(p=>p.label);
   const max=100, min=0;
   const xStep=(W-pad*2)/(pts.length-1);
   const toY=v=>H-pad-(v-min)/(max-min)*(H-pad*2);
@@ -343,12 +466,12 @@ function buildTrend(pts) {
 
   let path='M'+pts.map((p,i)=>`${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join('L');
   let area=path+`L${toX(pts.length-1).toFixed(1)},${H} L${toX(0).toFixed(1)},${H} Z`;
-
   const dots=pts.map((p,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.value).toFixed(1)}" r="4" fill="#1D9E75"/>`).join('');
-  const xlbls=labels.map((l,i)=>`<text x="${toX(i).toFixed(1)}" y="${H}" font-size="9" fill="#9aaabb" text-anchor="middle">${l}</text>`).join('');
-  const lastVal=vals[vals.length-1];
+  const xlbls=pts.map((p,i)=>`<text x="${toX(i).toFixed(1)}" y="${H}" font-size="9" fill="#9aaabb" text-anchor="middle">${p.label}</text>`).join('');
+  const lastVal=pts[pts.length-1].value;
   const lastX=toX(pts.length-1);
   const lastY=toY(lastVal);
+  const lastColor = lastVal >= 80 ? '#0a6644' : '#c0392b';
 
   return `<svg viewBox="0 0 ${W} ${H+4}" xmlns="http://www.w3.org/2000/svg" style="width:100%">
     <defs>
@@ -362,13 +485,10 @@ function buildTrend(pts) {
     <path d="${area}" fill="url(#g)"/>
     <path d="${path}" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
-    <text x="${lastX}" y="${(lastY-8).toFixed(1)}" font-size="10" fill="#0a6644" font-weight="600" text-anchor="middle">${lastVal}%</text>
+    <text x="${lastX}" y="${(lastY-8).toFixed(1)}" font-size="10" fill="${lastColor}" font-weight="600" text-anchor="middle">${lastVal}%</text>
     ${xlbls}
   </svg>`;
 }
-
-// ══ GAS URLをここに貼り付けてください ══
-// 例: const GAS_URL = 'https://script.google.com/macros/s/xxxxx/exec';
 </script>
 </body>
 </html>
