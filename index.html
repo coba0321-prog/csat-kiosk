@@ -23,7 +23,8 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 .csat-btn:active { transform:scale(.97); opacity:.85; }
 .csat-btn:disabled { opacity:.45; pointer-events:none; }
 .csat-btn .emoji { font-size:clamp(52px,7vw,72px); }
-.csat-btn .label { flex:1; }
+.csat-btn .label { flex:1; line-height:1.4; }
+.csat-btn small { font-size:0.65em; opacity:0.85; font-weight:500; }
 .btn-happy   { background:#1a6fa8; color:#ffffff; }
 .btn-neutral { background:#5a6a7a; color:#ffffff; }
 .btn-sad     { background:#c06000; color:#ffffff; }
@@ -129,7 +130,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
     <h1 class="main-question">滞在時間中に、職員からの<br>気配りを感じることが<br>ありましたか？</h1>
     <div class="btn-group">
       <button class="csat-btn btn-happy"   onclick="onTap('satisfied')">
-        <span class="emoji">😊</span><span class="label">気配りを感じた（目にした）</span>
+        <span class="emoji">😊</span><span class="label">気配りを感じた<br><small>（目にした）</small></span>
       </button>
       <button class="csat-btn btn-neutral" onclick="onTap('neutral')">
         <span class="emoji">😐</span><span class="label">特になかった</span>
