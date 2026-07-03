@@ -423,47 +423,37 @@ function renderDash(d) {
 }
 
 function renderHourly(d) {
-  // 時間帯ごとにtrendデータを集計
+  const hourlyData = d.hourly || [];
+
   const slots = [
-    { label:'8〜9時', hours:[8,9] },
-    { label:'9〜10時', hours:[9,10] },
-    { label:'10〜11時', hours:[10,11] },
-    { label:'11〜12時', hours:[11,12] },
-    { label:'12〜13時', hours:[12,13] },
-    { label:'13〜14時', hours:[13,14] },
-    { label:'14〜15時', hours:[14,15] },
+    { label:'8〜9時',   hours:[8]        },
+    { label:'9〜10時',  hours:[9]        },
+    { label:'10〜11時', hours:[10]       },
+    { label:'11〜12時', hours:[11]       },
+    { label:'12〜13時', hours:[12]       },
+    { label:'13〜14時', hours:[13]       },
+    { label:'14〜15時', hours:[14]       },
     { label:'15〜17時', hours:[15,16,17] },
   ];
 
-  // trendから時間ラベルで集計
-  const map = {};
-  (d.trend || []).forEach(p => {
-    const h = parseInt(p.label);
-    if (!isNaN(h)) {
-      if (!map[h]) map[h] = { pos:0, total:0 };
-      map[h].pos   += p.value;
-      map[h].total += 1;
-    }
-  });
-
   const cells = slots.map(slot => {
-    let posSum = 0, cnt = 0;
-    slot.hours.forEach(h => {
-      if (map[h]) { posSum += map[h].pos; cnt += map[h].total; }
-    });
-    const avg = cnt > 0 ? Math.round(posSum / cnt) : null;
-    const bg = avg === null ? '#ccd8e0'
-             : avg >= 80   ? '#0d7a4e'
-             : avg >= 60   ? '#e08000'
-             :               '#c0392b';
+    const matched = hourlyData.filter(h => slot.hours.includes(h.hour));
+    const total = matched.reduce((s,h) => s+h.total, 0);
+    const avgVal = matched.length > 0
+      ? Math.round(matched.reduce((s,h) => s + h.value * h.total, 0) / (total || 1))
+      : null;
+    const bg = avgVal === null ? '#ccd8e0'
+             : avgVal >= 80   ? '#0d7a4e'
+             : avgVal >= 60   ? '#e08000'
+             :                  '#c0392b';
     return `<div class="hourly-cell" style="background:${bg}">
       <div class="hourly-time">${slot.label}</div>
-      <div class="hourly-pct">${avg !== null ? avg+'%' : '-'}</div>
-      <div class="hourly-cnt">${cnt > 0 ? cnt+'件' : 'データなし'}</div>
+      <div class="hourly-pct">${avgVal !== null ? avgVal+'%' : '-'}</div>
+      <div class="hourly-cnt">${total > 0 ? total+'件' : 'データなし'}</div>
     </div>`;
   }).join('');
 
-  const total = d.satisfied + d.neutral + d.dissatisfied;
+  const total    = d.satisfied + d.neutral + d.dissatisfied;
   const positive = total > 0 ? Math.round((d.satisfied + d.neutral) / total * 100) : 0;
   const posClass = positive >= 80 ? 'kpi-green' : 'kpi-red';
 
@@ -487,7 +477,7 @@ function renderHourly(d) {
   </div>`;
 }
 
-function renderWeekday(d) {
+function renderWeekdayfunction renderWeekday(d) {
   // trendデータから曜日別に集計（月データのtrendに曜日ラベルが入っている）
   const days = ['日','月','火','水','木','金','土'];
   const map = {};
