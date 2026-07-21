@@ -213,43 +213,16 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycby0WGneiorsY9-VjhKVaI4w
 // ══ CSAT送信 ══
 let busy = false;
 
-// ══ 天気取得（Open-Meteo・病院位置固定） ══
-// ▼ 病院の緯度・経度（さとう記念病院：岡山県美作市林野）
-const HOSPITAL_LAT = 35.0066;
-const HOSPITAL_LON = 134.1531;
+// ══ CSAT送信 ══
 
-const WEATHER_CODE = {
-  0:'快晴', 1:'晴れ', 2:'一部曇り', 3:'曇り',
-  45:'霧', 48:'霧氷',
-  51:'霧雨（弱）', 53:'霧雨', 55:'霧雨（強）',
-  61:'雨（弱）', 63:'雨', 65:'雨（強）',
-  71:'雪（弱）', 73:'雪', 75:'雪（強）',
-  80:'にわか雨（弱）', 81:'にわか雨', 82:'にわか雨（強）',
-  95:'雷雨', 96:'雷雨＋雹', 99:'雷雨＋雹（強）',
-};
-
-async function fetchWeather() {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${HOSPITAL_LAT}&longitude=${HOSPITAL_LON}&current=temperature_2m,weathercode&timezone=Asia/Tokyo`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const code = data.current.weathercode;
-    const temp = Math.round(data.current.temperature_2m);
-    const label = WEATHER_CODE[code] || '不明';
-    return { weather: label, temp: temp + '℃', code };
-  } catch(e) {
-    return { weather: '取得失敗', temp: '-', code: -1 };
-  }
-}
 
 async function onTap(rating) {
   if (busy) return;
   busy = true;
   document.querySelectorAll('.csat-btn').forEach(b => b.disabled = true);
 
-  // 天気を取得してからスプレッドシートへ送信
-  const weatherInfo = await fetchWeather();
-  const payload = { rating, timestamp: new Date().toISOString(), weather: weatherInfo.weather, temp: weatherInfo.temp };
+  // GASへ送信（天気はGAS側で取得）
+  const payload = { rating, timestamp: new Date().toISOString() };
   const form = new FormData();
   form.append('payload', JSON.stringify(payload));
   fetch(GAS_URL, { method:'POST', mode:'no-cors', body: form }).catch(()=>{});
