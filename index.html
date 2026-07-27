@@ -354,20 +354,31 @@ async function loadDash() {
 
 function renderDash(d) {
   const total    = d.satisfied + d.neutral + d.dissatisfied;
-  const positive = total > 0 ? Math.round((d.satisfied + d.neutral) / total * 100) : 0;
-  const satPct   = total > 0 ? Math.round(d.satisfied    / total * 100) : 0;
-  const neuPct   = total > 0 ? Math.round(d.neutral      / total * 100) : 0;
-  const disPct   = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
 
-  // ポジティブ率が80%未満なら赤・警告バナー表示
+  // ポジティブ率：気配りを感じた ÷ 全体（普通は分子に含めない）
+  const positive = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
+
+  // 平均スコア：満足3点・普通2点・不満1点
+  const avgScore = total > 0
+    ? ((d.satisfied * 3 + d.neutral * 2 + d.dissatisfied * 1) / total).toFixed(2)
+    : '-';
+  const avgNum   = total > 0
+    ? (d.satisfied * 3 + d.neutral * 2 + d.dissatisfied * 1) / total
+    : 0;
+
+  const satPct = total > 0 ? Math.round(d.satisfied    / total * 100) : 0;
+  const neuPct = total > 0 ? Math.round(d.neutral      / total * 100) : 0;
+  const disPct = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
+
+  // ポジティブ率80%未満で警告
   const posClass  = positive >= 80 ? 'kpi-green' : 'kpi-red';
+  const avgClass  = avgNum  >= 2.5 ? 'kpi-green' : 'kpi-red';
+
   const alertHtml = (total > 0 && positive < 80)
     ? `<div class="alert-banner">⚠️ ポジティブ率が合格ライン（80%）を下回っています</div>`
     : '';
-
-  // 不満が多い場合の追加警告
   const disAlert = (total >= 5 && disPct >= 30)
-    ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不満の割合が${disPct}%と高くなっています</div>`
+    ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不快の割合が${disPct}%と高くなっています</div>`
     : '';
 
   // トレンドSVG
@@ -383,7 +394,7 @@ function renderDash(d) {
     <div class="kpi-card">
       <div class="kpi-label">ポジティブ率</div>
       <div class="kpi-value ${posClass}">${positive}%</div>
-      <div class="kpi-sub kpi-gray">合格ライン 80%</div>
+      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体　合格ライン 80%</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">総回答数</div>
@@ -391,36 +402,36 @@ function renderDash(d) {
       <div class="kpi-sub kpi-gray">件</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">気配りを感じた</div>
-      <div class="kpi-value kpi-green">${satPct}%</div>
-      <div class="kpi-sub kpi-gray">${d.satisfied}件</div>
+      <div class="kpi-label">平均スコア</div>
+      <div class="kpi-value ${avgClass}">${avgScore}</div>
+      <div class="kpi-sub kpi-gray">満足3点・普通2点・不満1点　合格ライン 2.5</div>
     </div>
   </div>
 
   <div class="breakdown-card">
     <div class="card-title">回答内訳</div>
     <div class="bar-row">
-      <span class="bar-emoji">😀</span>
+      <span class="bar-emoji">😊</span>
       <span class="bar-lbl">気配りを感じた</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${satPct}%;background:#1D9E75"></div></div>
-      <span class="bar-cnt">${d.satisfied}件</span>
+      <span class="bar-cnt">${d.satisfied}件（${satPct}%）</span>
     </div>
     <div class="bar-row">
       <span class="bar-emoji">😐</span>
       <span class="bar-lbl">特になかった</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:#7a8fa6"></div></div>
-      <span class="bar-cnt">${d.neutral}件</span>
+      <span class="bar-cnt">${d.neutral}件（${neuPct}%）</span>
     </div>
     <div class="bar-row">
-      <span class="bar-emoji">🙁</span>
+      <span class="bar-emoji">😞</span>
       <span class="bar-lbl">不快と感じた</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${disPct}%;background:#D85A30"></div></div>
-      <span class="bar-cnt">${d.dissatisfied}件</span>
+      <span class="bar-cnt">${d.dissatisfied}件（${disPct}%）</span>
     </div>
   </div>
 
   <div class="trend-card">
-    <div class="card-title">ポジティブ率トレンド</div>
+    <div class="card-title">ポジティブ率トレンド（気配りを感じた ÷ 全体）</div>
     <div class="trend-svg-wrap">${trendSvg}</div>
   </div>`;
 }
@@ -465,6 +476,7 @@ function renderHourly(d) {
     <div class="kpi-card">
       <div class="kpi-label">今月ポジティブ率</div>
       <div class="kpi-value ${posClass}">${positive}%</div>
+      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">今月総回答数</div>
