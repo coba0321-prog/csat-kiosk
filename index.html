@@ -200,7 +200,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
   <!-- ベースライン設定パネル -->
   <div id="baseline-panel" style="display:none;margin:8px 24px 0;background:#f8fafc;border:1px solid #d0dde8;border-radius:12px;padding:14px 16px;">
     <div style="font-size:13px;font-weight:500;color:#1a2b3c;margin-bottom:10px;">合格ライン設定</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
       <div>
         <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">ポジティブ率の合格ライン（%）</div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -217,6 +217,15 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
             oninput="document.getElementById('baseline-avg-val').textContent=parseFloat(this.value).toFixed(1)"
             style="flex:1;">
           <span id="baseline-avg-val" style="font-size:14px;font-weight:600;color:#1a6fa8;min-width:36px;">2.5</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">「特になかった」警告しきい値（%）</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="baseline-neu" min="20" max="70" step="5" value="40"
+            oninput="document.getElementById('baseline-neu-val').textContent=this.value+'%'"
+            style="flex:1;">
+          <span id="baseline-neu-val" style="font-size:14px;font-weight:600;color:#e08000;min-width:36px;">40%</span>
         </div>
       </div>
     </div>
@@ -361,13 +370,10 @@ async function loadDash() {
   el.innerHTML = '<p class="status-msg">読み込み中…</p>';
 
   try {
-    // 曜日別は月単位データを取得して集計
-    let period = currentPeriod;
-    if (currentPeriod === 'weekday') period = 'month';
-    if (currentPeriod === 'hourly')  period = 'month';
-    const res  = await fetch(GAS_URL + '?period=' + period);
+    const res  = await fetch(GAS_URL + '?period=' + currentPeriod);
     const data = await res.json();
 
+    // GASから比較データ（prev）も含めて返ってくる
     if (currentPeriod === 'weekday') {
       el.innerHTML = renderWeekday(data);
     } else if (currentPeriod === 'hourly') {
@@ -388,13 +394,16 @@ async function loadDash() {
 // ══ ベースライン設定 ══
 let BASELINE_POS = 80;   // ポジティブ率の合格ライン（%）
 let BASELINE_AVG = 2.5;  // 平均スコアの合格ライン（点）
+let BASELINE_NEU = 40;   // 「特になかった」警告しきい値（%）
 
 function loadBaselineFromStorage() {
   try {
     const pos = localStorage.getItem('baseline_pos');
     const avg = localStorage.getItem('baseline_avg');
+    const neu = localStorage.getItem('baseline_neu');
     if (pos) { BASELINE_POS = parseFloat(pos); document.getElementById('baseline-pos').value = BASELINE_POS; document.getElementById('baseline-pos-val').textContent = BASELINE_POS + '%'; }
     if (avg) { BASELINE_AVG = parseFloat(avg); document.getElementById('baseline-avg').value = BASELINE_AVG; document.getElementById('baseline-avg-val').textContent = BASELINE_AVG.toFixed(1); }
+    if (neu) { BASELINE_NEU = parseFloat(neu); document.getElementById('baseline-neu').value = BASELINE_NEU; document.getElementById('baseline-neu-val').textContent = BASELINE_NEU + '%'; }
   } catch(e) {}
 }
 
@@ -406,18 +415,21 @@ function toggleBaseline() {
 function applyBaseline() {
   BASELINE_POS = parseFloat(document.getElementById('baseline-pos').value);
   BASELINE_AVG = parseFloat(document.getElementById('baseline-avg').value);
-  try { localStorage.setItem('baseline_pos', BASELINE_POS); localStorage.setItem('baseline_avg', BASELINE_AVG); } catch(e) {}
+  BASELINE_NEU = parseFloat(document.getElementById('baseline-neu').value);
+  try { localStorage.setItem('baseline_pos', BASELINE_POS); localStorage.setItem('baseline_avg', BASELINE_AVG); localStorage.setItem('baseline_neu', BASELINE_NEU); } catch(e) {}
   document.getElementById('baseline-panel').style.display = 'none';
   loadDash();
 }
 
 function resetBaseline() {
-  BASELINE_POS = 80; BASELINE_AVG = 2.5;
+  BASELINE_POS = 80; BASELINE_AVG = 2.5; BASELINE_NEU = 40;
   document.getElementById('baseline-pos').value = 80;
   document.getElementById('baseline-pos-val').textContent = '80%';
   document.getElementById('baseline-avg').value = 2.5;
   document.getElementById('baseline-avg-val').textContent = '2.5';
-  try { localStorage.removeItem('baseline_pos'); localStorage.removeItem('baseline_avg'); } catch(e) {}
+  document.getElementById('baseline-neu').value = 40;
+  document.getElementById('baseline-neu-val').textContent = '40%';
+  try { localStorage.removeItem('baseline_pos'); localStorage.removeItem('baseline_avg'); localStorage.removeItem('baseline_neu'); } catch(e) {}
   document.getElementById('baseline-panel').style.display = 'none';
   loadDash();
 }
@@ -443,15 +455,16 @@ function renderDash(d) {
   const neuPct = total > 0 ? Math.round(d.neutral      / total * 100) : 0;
   const disPct = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
 
-  // 前回比較
-  const prev = prevData[currentPeriod];
+  // 前回比較（GASから返ってくるprevデータを使用）
+  const prevPeriodLabel = { today:'昨日比', week:'先週比', month:'先月比' };
+  const prev = d.prev;
   const prevTotal = prev ? (prev.satisfied + prev.neutral + prev.dissatisfied) : 0;
   const prevPos   = prevTotal > 0 ? Math.round(prev.satisfied / prevTotal * 100) : null;
   const diffPos   = (prevPos !== null && total > 0) ? (positive - prevPos) : null;
+  const compLabel = prevPeriodLabel[currentPeriod] || '';
   const diffHtml  = diffPos !== null
-    ? `<span style="font-size:11px;font-weight:600;color:${diffPos >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffPos >= 0 ? '▲' : '▼'}${Math.abs(diffPos)}%</span>`
+    ? `<span style="font-size:11px;font-weight:600;color:${diffPos >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffPos >= 0 ? '▲' : '▼'}${Math.abs(diffPos)}%（${compLabel}）</span>`
     : '';
-  prevData[currentPeriod] = d;
 
   // 警告
   const posClass  = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
@@ -464,8 +477,8 @@ function renderDash(d) {
     ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不快の割合が${disPct}%と高くなっています</div>`
     : '';
   // 「特になかった」増加警告
-  const neuAlert = (total >= 10 && neuPct >= 40)
-    ? `<div class="alert-banner" style="margin-top:-4px;background:#fff8e6;border-color:#f5d98a;color:#7a5500;">🟡 「特になかった」が${neuPct}%と高くなっています（ネガティブシグナル）</div>`
+  const neuAlert = (total >= 10 && neuPct >= BASELINE_NEU)
+    ? `<div class="alert-banner" style="margin-top:-4px;background:#fff8e6;border-color:#f5d98a;color:#7a5500;">🟡 「特になかった」が${neuPct}%（しきい値${BASELINE_NEU}%）を超えています（ネガティブシグナル）</div>`
     : '';
 
   // トレンドSVG（ポジティブ率）
@@ -514,7 +527,7 @@ function renderDash(d) {
     <div class="bar-row">
       <span class="bar-emoji">😐</span>
       <span class="bar-lbl" style="width:80px;">特になかった</span>
-      <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:${neuPct >= 40 ? '#e08000' : '#7a8fa6'}"></div></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:${neuPct >= BASELINE_NEU ? '#e08000' : '#7a8fa6'}"></div></div>
       <span class="bar-cnt">${d.neutral}件（${neuPct}%）</span>
     </div>
     <div class="bar-row">
@@ -540,14 +553,14 @@ function renderHourly(d) {
   const hourlyData = d.hourly || [];
 
   const slots = [
-    { label:'8〜9時',   hours:[8]        },
     { label:'9〜10時',  hours:[9]        },
     { label:'10〜11時', hours:[10]       },
     { label:'11〜12時', hours:[11]       },
     { label:'12〜13時', hours:[12]       },
     { label:'13〜14時', hours:[13]       },
     { label:'14〜15時', hours:[14]       },
-    { label:'15〜17時', hours:[15,16,17] },
+    { label:'15〜16時', hours:[15]       },
+    { label:'16時以降', hours:[16,17,18] },
   ];
 
   const cells = slots.map(slot => {
@@ -578,11 +591,22 @@ function renderHourly(d) {
   const posClass = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
   const avgClass = avgNum  >= BASELINE_AVG ? 'kpi-green' : 'kpi-red';
 
+  // 前日比較
+  const prevH = d.prev;
+  const prevHTotal = prevH ? (prevH.satisfied + prevH.neutral + prevH.dissatisfied) : 0;
+  const prevHPos = prevHTotal > 0 ? Math.round(prevH.satisfied / prevHTotal * 100) : null;
+  const diffH = (prevHPos !== null && total > 0) ? (positive - prevHPos) : null;
+  const diffHHtml = diffH !== null
+    ? `<span style="font-size:11px;font-weight:600;color:${diffH >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffH >= 0 ? '▲' : '▼'}${Math.abs(diffH)}%（前日比）</span>`
+    : '';
+
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
       <div class="kpi-label">今月ポジティブ率</div>
-      <div class="kpi-value ${posClass}">${positive}%</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <div class="kpi-value ${posClass}">${positive}%</div>${diffHHtml}
+      </div>
       <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体</div>
     </div>
     <div class="kpi-card">
@@ -592,7 +616,7 @@ function renderHourly(d) {
     <div class="kpi-card">
       <div class="kpi-label">今月平均スコア</div>
       <div class="kpi-value ${avgClass}">${avgScore}</div>
-      <div class="kpi-sub kpi-gray">合格ライン 2.5</div>
+      <div class="kpi-sub kpi-gray">合格ライン ${BASELINE_AVG.toFixed(1)}</div>
     </div>
   </div>
   <div class="hourly-card">
@@ -640,11 +664,22 @@ function renderWeekday(d) {
   const posClass = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
   const avgClassW = avgNumW >= BASELINE_AVG ? 'kpi-green' : 'kpi-red';
 
+  // 先週比較
+  const prevW = d.prev;
+  const prevWTotal = prevW ? (prevW.satisfied + prevW.neutral + prevW.dissatisfied) : 0;
+  const prevWPos = prevWTotal > 0 ? Math.round(prevW.satisfied / prevWTotal * 100) : null;
+  const diffW = (prevWPos !== null && total > 0) ? (positive - prevWPos) : null;
+  const diffWHtml = diffW !== null
+    ? `<span style="font-size:11px;font-weight:600;color:${diffW >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffW >= 0 ? '▲' : '▼'}${Math.abs(diffW)}%（先週比）</span>`
+    : '';
+
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
       <div class="kpi-label">今月ポジティブ率</div>
-      <div class="kpi-value ${posClass}">${positive}%</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <div class="kpi-value ${posClass}">${positive}%</div>${diffWHtml}
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">今月総回答数</div>
@@ -673,9 +708,8 @@ function buildTrend(pts, isAvgScore=false, d=null) {
   let values, labels, maxV, minV, thresholdV, thresholdLabel, lastColor;
 
   if (isAvgScore && d) {
-    // 平均スコアトレンド（trendのvalue=ポジティブ率を3点換算で近似）
-    // GASのtrendをそのまま流用し、value/100*2+1 で1〜3点に変換
-    values = pts.map(p => Math.round((p.value/100*2+1)*100)/100);
+    // 平均スコアトレンド（GASのtrendにavgScoreフィールドが含まれていればそれを使う）
+    values = pts.map(p => p.avgScore !== undefined ? p.avgScore : Math.round((p.value/100*2+1)*100)/100);
     labels = pts.map(p => p.label);
     maxV = 3.0; minV = 1.0; thresholdV = 2.5; thresholdLabel = '2.5';
     lastColor = values[values.length-1] >= 2.5 ? '#0a6644' : '#c0392b';
