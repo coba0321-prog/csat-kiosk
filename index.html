@@ -464,6 +464,8 @@ function renderDash(d) {
   const compLabel = prevPeriodLabel[currentPeriod] || '';
   const diffHtml  = diffPos !== null
     ? `<span style="font-size:11px;font-weight:600;color:${diffPos >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffPos >= 0 ? '▲' : '▼'}${Math.abs(diffPos)}%（${compLabel}）</span>`
+    : prevPos !== null
+    ? `<span style="font-size:11px;color:#9aaabb;margin-left:4px;">${compLabel}：${prevPos}%</span>`
     : '';
 
   // 警告
