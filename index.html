@@ -185,12 +185,56 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
   <div class="dash-header">
     <div>
       <h2>📊 集計ダッシュボード</h2>
-      <div class="dash-updated" id="dash-updated"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="dash-updated" id="dash-updated"></div>
+        <button onclick="loadDash()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid #d0dde8;background:#fff;color:#1D9E75;font-weight:500;cursor:pointer;">更新</button>
+        <button onclick="toggleBaseline()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid #d0dde8;background:#fff;color:#5a7080;font-weight:500;cursor:pointer;">合格ライン設定</button>
+      </div>
     </div>
     <button class="back-btn" onclick="showCsat()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       入力画面に戻る
     </button>
+  </div>
+
+  <!-- ベースライン設定パネル -->
+  <div id="baseline-panel" style="display:none;margin:8px 24px 0;background:#f8fafc;border:1px solid #d0dde8;border-radius:12px;padding:14px 16px;">
+    <div style="font-size:13px;font-weight:500;color:#1a2b3c;margin-bottom:10px;">合格ライン設定</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">ポジティブ率の合格ライン（%）</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="baseline-pos" min="50" max="95" step="5" value="80"
+            oninput="document.getElementById('baseline-pos-val').textContent=this.value+'%'"
+            style="flex:1;">
+          <span id="baseline-pos-val" style="font-size:14px;font-weight:600;color:#1a6fa8;min-width:36px;">80%</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">平均スコアの合格ライン（点）</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="baseline-avg" min="1.5" max="3.0" step="0.1" value="2.5"
+            oninput="document.getElementById('baseline-avg-val').textContent=parseFloat(this.value).toFixed(1)"
+            style="flex:1;">
+          <span id="baseline-avg-val" style="font-size:14px;font-weight:600;color:#1a6fa8;min-width:36px;">2.5</span>
+        </div>
+      </div>
+    </div>
+      <div>
+        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">「特になかった」警告しきい値（%）</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="baseline-neu" min="20" max="70" step="5" value="40"
+            oninput="document.getElementById('baseline-neu-val').textContent=this.value+'%'"
+            style="flex:1;">
+          <span id="baseline-neu-val" style="font-size:14px;font-weight:600;color:#e08000;min-width:36px;">40%</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button onclick="applyBaseline()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">この設定を適用</button>
+      <button onclick="resetBaseline()" style="padding:8px 14px;border-radius:8px;border:1px solid #d0dde8;background:#fff;color:#5a7080;font-size:13px;cursor:pointer;">初期値に戻す</button>
+    </div>
+    <div style="font-size:11px;color:#9aaabb;margin-top:8px;">※ 設定はこのデバイスに保存されます。2〜3ヶ月のデータ蓄積後に自院のベースラインに合わせて調整してください。</div>
   </div>
   <div class="period-tabs">
     <button class="tab-btn active" onclick="setPeriod('today',this)">今日</button>
@@ -212,8 +256,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycby0WGneiorsY9-VjhKVaI4w
 
 // ══ CSAT送信 ══
 let busy = false;
-
-// ══ CSAT送信 ══
 
 
 async function onTap(rating) {
@@ -306,6 +348,7 @@ function cancelHold() {
 function showDash() {
   document.getElementById('page-csat').classList.remove('active');
   document.getElementById('page-dash').classList.add('active');
+  loadBaselineFromStorage();
   loadDash();
 }
 function showCsat() {
@@ -328,13 +371,10 @@ async function loadDash() {
   el.innerHTML = '<p class="status-msg">読み込み中…</p>';
 
   try {
-    // 曜日別は月単位データを取得して集計
-    let period = currentPeriod;
-    if (currentPeriod === 'weekday') period = 'month';
-    if (currentPeriod === 'hourly')  period = 'month';
-    const res  = await fetch(GAS_URL + '?period=' + period);
+    const res  = await fetch(GAS_URL + '?period=' + currentPeriod);
     const data = await res.json();
 
+    // GASから比較データ（prev）も含めて返ってくる
     if (currentPeriod === 'weekday') {
       el.innerHTML = renderWeekday(data);
     } else if (currentPeriod === 'hourly') {
@@ -352,17 +392,63 @@ async function loadDash() {
   }
 }
 
+// ══ ベースライン設定 ══
+let BASELINE_POS = 80;   // ポジティブ率の合格ライン（%）
+let BASELINE_AVG = 2.5;  // 平均スコアの合格ライン（点）
+let BASELINE_NEU = 40;   // 「特になかった」警告しきい値（%）
+
+function loadBaselineFromStorage() {
+  try {
+    const pos = localStorage.getItem('baseline_pos');
+    const avg = localStorage.getItem('baseline_avg');
+    const neu = localStorage.getItem('baseline_neu');
+    if (pos) { BASELINE_POS = parseFloat(pos); document.getElementById('baseline-pos').value = BASELINE_POS; document.getElementById('baseline-pos-val').textContent = BASELINE_POS + '%'; }
+    if (avg) { BASELINE_AVG = parseFloat(avg); document.getElementById('baseline-avg').value = BASELINE_AVG; document.getElementById('baseline-avg-val').textContent = BASELINE_AVG.toFixed(1); }
+    if (neu) { BASELINE_NEU = parseFloat(neu); document.getElementById('baseline-neu').value = BASELINE_NEU; document.getElementById('baseline-neu-val').textContent = BASELINE_NEU + '%'; }
+  } catch(e) {}
+}
+
+function toggleBaseline() {
+  const p = document.getElementById('baseline-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyBaseline() {
+  BASELINE_POS = parseFloat(document.getElementById('baseline-pos').value);
+  BASELINE_AVG = parseFloat(document.getElementById('baseline-avg').value);
+  BASELINE_NEU = parseFloat(document.getElementById('baseline-neu').value);
+  try { localStorage.setItem('baseline_pos', BASELINE_POS); localStorage.setItem('baseline_avg', BASELINE_AVG); localStorage.setItem('baseline_neu', BASELINE_NEU); } catch(e) {}
+  document.getElementById('baseline-panel').style.display = 'none';
+  loadDash();
+}
+
+function resetBaseline() {
+  BASELINE_POS = 80; BASELINE_AVG = 2.5; BASELINE_NEU = 40;
+  document.getElementById('baseline-pos').value = 80;
+  document.getElementById('baseline-pos-val').textContent = '80%';
+  document.getElementById('baseline-avg').value = 2.5;
+  document.getElementById('baseline-avg-val').textContent = '2.5';
+  document.getElementById('baseline-neu').value = 40;
+  document.getElementById('baseline-neu-val').textContent = '40%';
+  try { localStorage.removeItem('baseline_pos'); localStorage.removeItem('baseline_avg'); localStorage.removeItem('baseline_neu'); } catch(e) {}
+  document.getElementById('baseline-panel').style.display = 'none';
+  loadDash();
+}
+
+// ══ 前回データキャッシュ（前期間比較用） ══
+let prevData = {};
+
 function renderDash(d) {
   const total    = d.satisfied + d.neutral + d.dissatisfied;
 
-  // ポジティブ率：気配りを感じた ÷ 全体（普通は分子に含めない）
+  // ポジティブ率：気配りを感じた ÷ 全体
   const positive = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
 
   // 平均スコア：満足3点・普通2点・不満1点
   const avgScore = total > 0
     ? ((d.satisfied * 3 + d.neutral * 2 + d.dissatisfied * 1) / total).toFixed(2)
     : '-';
-  const avgNum   = total > 0
+  const avgNum = total > 0
     ? (d.satisfied * 3 + d.neutral * 2 + d.dissatisfied * 1) / total
     : 0;
 
@@ -370,31 +456,54 @@ function renderDash(d) {
   const neuPct = total > 0 ? Math.round(d.neutral      / total * 100) : 0;
   const disPct = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
 
-  // ポジティブ率80%未満で警告
-  const posClass  = positive >= 80 ? 'kpi-green' : 'kpi-red';
-  const avgClass  = avgNum  >= 2.5 ? 'kpi-green' : 'kpi-red';
+  // 前回比較（GASから返ってくるprevデータを使用）
+  const prevPeriodLabel = { today:'昨日比', week:'先週比', month:'先月比' };
+  const prev = d.prev;
+  const prevTotal = prev ? (prev.satisfied + prev.neutral + prev.dissatisfied) : 0;
+  const prevPos   = prevTotal > 0 ? Math.round(prev.satisfied / prevTotal * 100) : null;
+  const diffPos   = (prevPos !== null && total > 0) ? (positive - prevPos) : null;
+  const compLabel = prevPeriodLabel[currentPeriod] || '';
+  const diffHtml  = diffPos !== null
+    ? `<span style="font-size:11px;font-weight:600;color:${diffPos >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffPos >= 0 ? '▲' : '▼'}${Math.abs(diffPos)}%（${compLabel}）</span>`
+    : '';
 
-  const alertHtml = (total > 0 && positive < 80)
+  // 警告
+  const posClass  = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
+  const avgClass  = avgNum  >= BASELINE_AVG ? 'kpi-green' : 'kpi-red';
+
+  const alertHtml = (total > 0 && positive < BASELINE_POS)
     ? `<div class="alert-banner">⚠️ ポジティブ率が合格ライン（80%）を下回っています</div>`
     : '';
   const disAlert = (total >= 5 && disPct >= 30)
     ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不快の割合が${disPct}%と高くなっています</div>`
     : '';
+  // 「特になかった」増加警告
+  const neuAlert = (total >= 10 && neuPct >= BASELINE_NEU)
+    ? `<div class="alert-banner" style="margin-top:-4px;background:#fff8e6;border-color:#f5d98a;color:#7a5500;">🟡 「特になかった」が${neuPct}%（しきい値${BASELINE_NEU}%）を超えています（ネガティブシグナル）</div>`
+    : '';
 
-  // トレンドSVG
+  // トレンドSVG（ポジティブ率）
   const pts = (d.trend || []);
   const trendSvg = pts.length >= 2
-    ? buildTrend(pts)
+    ? buildTrend(pts, false)
     : '<p style="font-size:12px;color:#9aaabb;text-align:center;padding:12px 0;">データが2件以上になるとグラフが表示されます</p>';
+
+  // 平均スコアトレンドSVG
+  const avgTrendSvg = pts.length >= 2
+    ? buildTrend(pts, true, d)
+    : '';
 
   return `
   ${alertHtml}
   ${disAlert}
+  ${neuAlert}
   <div class="kpi-row">
     <div class="kpi-card">
       <div class="kpi-label">ポジティブ率</div>
-      <div class="kpi-value ${posClass}">${positive}%</div>
-      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体　合格ライン 80%</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <div class="kpi-value ${posClass}">${positive}%</div>${diffHtml}
+      </div>
+      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体　合格ライン ${BASELINE_POS}%</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">総回答数</div>
@@ -404,7 +513,7 @@ function renderDash(d) {
     <div class="kpi-card">
       <div class="kpi-label">平均スコア</div>
       <div class="kpi-value ${avgClass}">${avgScore}</div>
-      <div class="kpi-sub kpi-gray">満足3点・普通2点・不満1点　合格ライン 2.5</div>
+      <div class="kpi-sub kpi-gray">満足3・普通2・不満1点　合格ライン ${BASELINE_AVG.toFixed(1)}</div>
     </div>
   </div>
 
@@ -412,19 +521,19 @@ function renderDash(d) {
     <div class="card-title">回答内訳</div>
     <div class="bar-row">
       <span class="bar-emoji">😊</span>
-      <span class="bar-lbl">気配りを感じた</span>
+      <span class="bar-lbl" style="width:80px;">気配りを感じた</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${satPct}%;background:#1D9E75"></div></div>
       <span class="bar-cnt">${d.satisfied}件（${satPct}%）</span>
     </div>
     <div class="bar-row">
       <span class="bar-emoji">😐</span>
-      <span class="bar-lbl">特になかった</span>
-      <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:#7a8fa6"></div></div>
+      <span class="bar-lbl" style="width:80px;">特になかった</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:${neuPct >= BASELINE_NEU ? '#e08000' : '#7a8fa6'}"></div></div>
       <span class="bar-cnt">${d.neutral}件（${neuPct}%）</span>
     </div>
     <div class="bar-row">
       <span class="bar-emoji">😞</span>
-      <span class="bar-lbl">不快と感じた</span>
+      <span class="bar-lbl" style="width:80px;">不快と感じた</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${disPct}%;background:#D85A30"></div></div>
       <span class="bar-cnt">${d.dissatisfied}件（${disPct}%）</span>
     </div>
@@ -433,21 +542,26 @@ function renderDash(d) {
   <div class="trend-card">
     <div class="card-title">ポジティブ率トレンド（気配りを感じた ÷ 全体）</div>
     <div class="trend-svg-wrap">${trendSvg}</div>
-  </div>`;
+  </div>
+
+  ${avgTrendSvg ? `<div class="trend-card">
+    <div class="card-title">平均スコアトレンド（3点満点）</div>
+    <div class="trend-svg-wrap">${avgTrendSvg}</div>
+  </div>` : ''}`;
 }
 
 function renderHourly(d) {
   const hourlyData = d.hourly || [];
 
   const slots = [
-    { label:'8〜9時',   hours:[8]        },
     { label:'9〜10時',  hours:[9]        },
     { label:'10〜11時', hours:[10]       },
     { label:'11〜12時', hours:[11]       },
     { label:'12〜13時', hours:[12]       },
     { label:'13〜14時', hours:[13]       },
     { label:'14〜15時', hours:[14]       },
-    { label:'15〜17時', hours:[15,16,17] },
+    { label:'15〜16時', hours:[15]       },
+    { label:'16時以降', hours:[16,17,18] },
   ];
 
   const cells = slots.map(slot => {
@@ -456,14 +570,16 @@ function renderHourly(d) {
     const avgVal = matched.length > 0
       ? Math.round(matched.reduce((s,h) => s + h.value * h.total, 0) / (total || 1))
       : null;
+    const lowN = total > 0 && total < 10;
     const bg = avgVal === null ? '#ccd8e0'
+             : lowN           ? '#b0bec5'
              : avgVal >= 80   ? '#0d7a4e'
              : avgVal >= 60   ? '#e08000'
              :                  '#c0392b';
-    return `<div class="hourly-cell" style="background:${bg}">
+    return `<div class="hourly-cell" style="background:${bg}${lowN ? ';opacity:0.7' : ''}">
       <div class="hourly-time">${slot.label}</div>
       <div class="hourly-pct">${avgVal !== null ? avgVal+'%' : '-'}</div>
-      <div class="hourly-cnt">${total > 0 ? total+'件' : 'データなし'}</div>
+      <div class="hourly-cnt">${total > 0 ? total+'件' + (lowN ? '(参考値)' : '') : 'データなし'}</div>
     </div>`;
   }).join('');
 
@@ -473,14 +589,25 @@ function renderHourly(d) {
   // 平均スコア
   const avgScore = total > 0 ? ((d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total).toFixed(2) : '-';
   const avgNum   = total > 0 ? (d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total : 0;
-  const posClass = positive >= 80 ? 'kpi-green' : 'kpi-red';
-  const avgClass = avgNum  >= 2.5 ? 'kpi-green' : 'kpi-red';
+  const posClass = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
+  const avgClass = avgNum  >= BASELINE_AVG ? 'kpi-green' : 'kpi-red';
+
+  // 前日比較
+  const prevH = d.prev;
+  const prevHTotal = prevH ? (prevH.satisfied + prevH.neutral + prevH.dissatisfied) : 0;
+  const prevHPos = prevHTotal > 0 ? Math.round(prevH.satisfied / prevHTotal * 100) : null;
+  const diffH = (prevHPos !== null && total > 0) ? (positive - prevHPos) : null;
+  const diffHHtml = diffH !== null
+    ? `<span style="font-size:11px;font-weight:600;color:${diffH >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffH >= 0 ? '▲' : '▼'}${Math.abs(diffH)}%（前日比）</span>`
+    : '';
 
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
       <div class="kpi-label">今月ポジティブ率</div>
-      <div class="kpi-value ${posClass}">${positive}%</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <div class="kpi-value ${posClass}">${positive}%</div>${diffHHtml}
+      </div>
       <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体</div>
     </div>
     <div class="kpi-card">
@@ -490,7 +617,7 @@ function renderHourly(d) {
     <div class="kpi-card">
       <div class="kpi-label">今月平均スコア</div>
       <div class="kpi-value ${avgClass}">${avgScore}</div>
-      <div class="kpi-sub kpi-gray">合格ライン 2.5</div>
+      <div class="kpi-sub kpi-gray">合格ライン ${BASELINE_AVG.toFixed(1)}</div>
     </div>
   </div>
   <div class="hourly-card">
@@ -535,14 +662,25 @@ function renderWeekday(d) {
   // 平均スコア
   const avgScoreW = total > 0 ? ((d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total).toFixed(2) : '-';
   const avgNumW   = total > 0 ? (d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total : 0;
-  const posClass = positive >= 80 ? 'kpi-green' : 'kpi-red';
-  const avgClassW = avgNumW >= 2.5 ? 'kpi-green' : 'kpi-red';
+  const posClass = positive >= BASELINE_POS ? 'kpi-green' : 'kpi-red';
+  const avgClassW = avgNumW >= BASELINE_AVG ? 'kpi-green' : 'kpi-red';
+
+  // 先週比較
+  const prevW = d.prev;
+  const prevWTotal = prevW ? (prevW.satisfied + prevW.neutral + prevW.dissatisfied) : 0;
+  const prevWPos = prevWTotal > 0 ? Math.round(prevW.satisfied / prevWTotal * 100) : null;
+  const diffW = (prevWPos !== null && total > 0) ? (positive - prevWPos) : null;
+  const diffWHtml = diffW !== null
+    ? `<span style="font-size:11px;font-weight:600;color:${diffW >= 0 ? '#0a6644' : '#c0392b'};margin-left:4px;">${diffW >= 0 ? '▲' : '▼'}${Math.abs(diffW)}%（先週比）</span>`
+    : '';
 
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
       <div class="kpi-label">今月ポジティブ率</div>
-      <div class="kpi-value ${posClass}">${positive}%</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <div class="kpi-value ${posClass}">${positive}%</div>${diffWHtml}
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">今月総回答数</div>
@@ -563,35 +701,52 @@ function renderWeekday(d) {
   </div>`;
 }
 
-function buildTrend(pts) {
+function buildTrend(pts, isAvgScore=false, d=null) {
   const W=320, H=90, pad=24;
-  const max=100, min=0;
+  const color = isAvgScore ? '#1a6fa8' : '#1D9E75';
+  const gradId = isAvgScore ? 'ga' : 'g';
+
+  let values, labels, maxV, minV, thresholdV, thresholdLabel, lastColor;
+
+  if (isAvgScore && d) {
+    // 平均スコアトレンド（GASのtrendにavgScoreフィールドが含まれていればそれを使う）
+    values = pts.map(p => p.avgScore !== undefined ? p.avgScore : Math.round((p.value/100*2+1)*100)/100);
+    labels = pts.map(p => p.label);
+    maxV = 3.0; minV = 1.0; thresholdV = 2.5; thresholdLabel = '2.5';
+    lastColor = values[values.length-1] >= 2.5 ? '#0a6644' : '#c0392b';
+  } else {
+    values = pts.map(p => p.value);
+    labels = pts.map(p => p.label);
+    maxV = 100; minV = 0; thresholdV = BASELINE_POS; thresholdLabel = BASELINE_POS+'%';
+    lastColor = values[values.length-1] >= 80 ? '#0a6644' : '#c0392b';
+  }
+
   const xStep=(W-pad*2)/(pts.length-1);
-  const toY=v=>H-pad-(v-min)/(max-min)*(H-pad*2);
+  const toY=v=>H-pad-(v-minV)/(maxV-minV)*(H-pad*2);
   const toX=i=>pad+i*xStep;
 
-  let path='M'+pts.map((p,i)=>`${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join('L');
+  let path='M'+values.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L');
   let area=path+`L${toX(pts.length-1).toFixed(1)},${H} L${toX(0).toFixed(1)},${H} Z`;
-  const dots=pts.map((p,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.value).toFixed(1)}" r="4" fill="#1D9E75"/>`).join('');
-  const xlbls=pts.map((p,i)=>`<text x="${toX(i).toFixed(1)}" y="${H}" font-size="9" fill="#9aaabb" text-anchor="middle">${p.label}</text>`).join('');
-  const lastVal=pts[pts.length-1].value;
+  const dots=values.map((v,i)=>`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="4" fill="${color}"/>`).join('');
+  const xlbls=labels.map((l,i)=>`<text x="${toX(i).toFixed(1)}" y="${H}" font-size="9" fill="#9aaabb" text-anchor="middle">${l}</text>`).join('');
+  const lastVal = values[values.length-1];
   const lastX=toX(pts.length-1);
   const lastY=toY(lastVal);
-  const lastColor = lastVal >= 80 ? '#0a6644' : '#c0392b';
+  const dispVal = isAvgScore ? lastVal.toFixed(2) : lastVal + '%';
 
   return `<svg viewBox="0 0 ${W} ${H+4}" xmlns="http://www.w3.org/2000/svg" style="width:100%">
     <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#1D9E75" stop-opacity=".15"/>
-        <stop offset="100%" stop-color="#1D9E75" stop-opacity="0"/>
+      <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity=".15"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <line x1="${pad}" y1="${toY(80).toFixed(1)}" x2="${W-pad}" y2="${toY(80).toFixed(1)}" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,3"/>
-    <text x="${pad+2}" y="${(toY(80)-3).toFixed(1)}" font-size="9" fill="#bbb">80%</text>
-    <path d="${area}" fill="url(#g)"/>
-    <path d="${path}" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${pad}" y1="${toY(thresholdV).toFixed(1)}" x2="${W-pad}" y2="${toY(thresholdV).toFixed(1)}" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="${pad+2}" y="${(toY(thresholdV)-3).toFixed(1)}" font-size="9" fill="#bbb">${thresholdLabel}</text>
+    <path d="${area}" fill="url(#${gradId})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
-    <text x="${lastX}" y="${(lastY-8).toFixed(1)}" font-size="10" fill="${lastColor}" font-weight="600" text-anchor="middle">${lastVal}%</text>
+    <text x="${lastX}" y="${(lastY-8).toFixed(1)}" font-size="10" fill="${lastColor}" font-weight="600" text-anchor="middle">${dispVal}</text>
     ${xlbls}
   </svg>`;
 }
