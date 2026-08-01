@@ -238,7 +238,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
   <div class="period-tabs">
     <button class="tab-btn active" onclick="setPeriod('today',this)">今日</button>
     <button class="tab-btn" onclick="setPeriod('week7',this)">直近7日</button>
-    <button class="tab-btn" onclick="setPeriod('measure',this)">測定期間</button>
+    <button class="tab-btn" onclick="setPeriod('measure',this)">累計</button>
     <button class="tab-btn" onclick="setPeriod('weekday',this)">曜日別</button>
     <button class="tab-btn" onclick="setPeriod('hourly',this)">時間帯別</button>
   </div>
@@ -456,7 +456,7 @@ function renderDash(d) {
   const disPct = total > 0 ? Math.round(d.dissatisfied / total * 100) : 0;
 
   // 前回比較（GASから返ってくるprevデータを使用）
-  const prevPeriodLabel = { today:'昨日比', week7:'前7日間比', measure:'測定期間' };
+  const prevPeriodLabel = { today:'昨日比', week7:'前7日間比', measure:'累計' };
   const prev = d.prev;
   const prevTotal = prev ? (prev.satisfied + prev.neutral + prev.dissatisfied) : 0;
   const prevPos   = prevTotal > 0 ? Math.round(prev.satisfied / prevTotal * 100) : null;
@@ -494,7 +494,7 @@ function renderDash(d) {
     ? buildTrend(pts, true, d)
     : '';
 
-  const periodLabel = { today:'本日', week7:'直近7日', measure:'測定期間' };
+  const periodLabel = { today:'本日', week7:'直近7日', measure:'累計' };
   const pLabel = periodLabel[currentPeriod] || '';
 
   return `
@@ -608,24 +608,24 @@ function renderHourly(d) {
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 ポジティブ率</div>
+      <div class="kpi-label">累計 ポジティブ率</div>
       <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
         <div class="kpi-value ${posClass}">${positive}%</div>${diffHHtml}
       </div>
       <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 総回答数</div>
+      <div class="kpi-label">累計 総回答数</div>
       <div class="kpi-value">${total}件</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 平均スコア</div>
+      <div class="kpi-label">累計 平均スコア</div>
       <div class="kpi-value ${avgClass}">${avgScore}</div>
       <div class="kpi-sub kpi-gray">合格ライン ${BASELINE_AVG.toFixed(1)}</div>
     </div>
   </div>
   <div class="hourly-card">
-    <div class="card-title">時間帯別 ポジティブ率（今月）</div>
+    <div class="card-title">時間帯別 ポジティブ率（累計）</div>
     <div class="hourly-grid">${cells}</div>
     <div style="margin-top:12px;display:flex;gap:12px;font-size:11px;color:#7a8fa6;">
       <span>🟢 80%以上</span><span>🟡 60〜79%</span><span>🔴 60%未満</span>
@@ -681,23 +681,23 @@ function renderWeekday(d) {
   return `
   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 ポジティブ率</div>
+      <div class="kpi-label">累計 ポジティブ率</div>
       <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
         <div class="kpi-value ${posClass}">${positive}%</div>${diffWHtml}
       </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 総回答数</div>
+      <div class="kpi-label">累計 総回答数</div>
       <div class="kpi-value">${total}件</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">測定期間 平均スコア</div>
+      <div class="kpi-label">累計 平均スコア</div>
       <div class="kpi-value ${avgClassW}">${avgScoreW}</div>
       <div class="kpi-sub kpi-gray">合格ライン 2.5</div>
     </div>
   </div>
   <div class="weekday-card">
-    <div class="card-title">曜日別 ポジティブ率（今月平均）</div>
+    <div class="card-title">曜日別 ポジティブ率（累計平均）</div>
     <div class="weekday-row">${bars}</div>
     <div style="margin-top:10px;display:flex;gap:12px;font-size:10px;color:#7a8fa6;">
       <span>🟢 80%以上</span><span>🟡 60〜79%</span><span>🔴 60%未満</span>
