@@ -127,16 +127,16 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 <div id="page-csat" class="page active">
   <div id="screen-main" class="screen active">
     <p class="hospital-name">さとう記念病院</p>
-    <h1 class="main-question">滞在時間中に、職員からの<br>気配りを感じることが<br>ありましたか？</h1>
+    <h1 class="main-question">本日、当院の職員から<br>気持ちの良い挨拶を<br>受けましたか？</h1>
     <div class="btn-group">
       <button class="csat-btn btn-happy"   onclick="onTap('satisfied')">
-        <span class="emoji">😊</span><span class="label">気配りを感じた<br><small>（目にした）</small></span>
+        <span class="emoji">😊</span><span class="label">気持ち良かった</span>
       </button>
       <button class="csat-btn btn-neutral" onclick="onTap('neutral')">
-        <span class="emoji">😐</span><span class="label">特になかった</span>
+        <span class="emoji">😐</span><span class="label">普通だった</span>
       </button>
       <button class="csat-btn btn-sad"     onclick="onTap('dissatisfied')">
-        <span class="emoji">😞</span><span class="label">不快と感じた</span>
+        <span class="emoji">😞</span><span class="label">気になった</span>
       </button>
     </div>
     <p class="anon-note">
@@ -220,7 +220,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
         </div>
       </div>
       <div>
-        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">「特になかった」警告しきい値（%）</div>
+        <div style="font-size:11px;color:#5a7080;margin-bottom:4px;">「普通だった」警告しきい値（%）</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <input type="range" id="baseline-neu" min="20" max="70" step="5" value="40"
             oninput="document.getElementById('baseline-neu-val').textContent=this.value+'%'"
@@ -251,7 +251,7 @@ html,body { width:100%; height:100%; font-family:-apple-system,'Hiragino Sans','
 // ══════════════════════════════════════════════
 // ▼ Apps ScriptのURLをここに設定
 // ══════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby0WGneiorsY9-VjhKVaI4wDi65qlWs1yVZN_aMgEQm4Jxd439kOEbNO64bMBjj9tI/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwNJ-jvW0jytg9RCsw38SsQLRPvG1OPEgzF8yRPSXhBPvo4gMOizMV5nbPYd5oJ2h64/exec';
 
 // ══ CSAT送信 ══
 let busy = false;
@@ -394,7 +394,7 @@ async function loadDash() {
 // ══ ベースライン設定 ══
 let BASELINE_POS = 80;   // ポジティブ率の合格ライン（%）
 let BASELINE_AVG = 2.5;  // 平均スコアの合格ライン（点）
-let BASELINE_NEU = 40;   // 「特になかった」警告しきい値（%）
+let BASELINE_NEU = 40;   // 「普通だった」警告しきい値（%）
 
 function loadBaselineFromStorage() {
   try {
@@ -440,7 +440,7 @@ let prevData = {};
 function renderDash(d) {
   const total    = d.satisfied + d.neutral + d.dissatisfied;
 
-  // ポジティブ率：気配りを感じた ÷ 全体
+  // ポジティブ率：気持ち良かった ÷ 全体
   const positive = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
 
   // 平均スコア：満足3点・普通2点・不満1点
@@ -476,11 +476,11 @@ function renderDash(d) {
     ? `<div class="alert-banner">⚠️ ポジティブ率が合格ライン（80%）を下回っています</div>`
     : '';
   const disAlert = (total >= 5 && disPct >= 30)
-    ? `<div class="alert-banner" style="margin-top:-4px;">🔴 不快の割合が${disPct}%と高くなっています</div>`
+    ? `<div class="alert-banner" style="margin-top:-4px;">🔴 「気になった」の割合が${disPct}%と高くなっています</div>`
     : '';
-  // 「特になかった」増加警告
+  // 「普通だった」増加警告
   const neuAlert = (total >= 10 && neuPct >= BASELINE_NEU)
-    ? `<div class="alert-banner" style="margin-top:-4px;background:#fff8e6;border-color:#f5d98a;color:#7a5500;">🟡 「特になかった」が${neuPct}%（しきい値${BASELINE_NEU}%）を超えています（ネガティブシグナル）</div>`
+    ? `<div class="alert-banner" style="margin-top:-4px;background:#fff8e6;border-color:#f5d98a;color:#7a5500;">🟡 「普通だった」が${neuPct}%（しきい値${BASELINE_NEU}%）を超えています（ネガティブシグナル）</div>`
     : '';
 
   // トレンドSVG（ポジティブ率）
@@ -507,7 +507,7 @@ function renderDash(d) {
       <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
         <div class="kpi-value ${posClass}">${positive}%</div>${diffHtml}
       </div>
-      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体　合格ライン ${BASELINE_POS}%</div>
+      <div class="kpi-sub kpi-gray">気持ち良かった ÷ 全体　合格ライン ${BASELINE_POS}%</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">${pLabel} 総回答数</div>
@@ -525,26 +525,26 @@ function renderDash(d) {
     <div class="card-title">回答内訳</div>
     <div class="bar-row">
       <span class="bar-emoji">😊</span>
-      <span class="bar-lbl" style="width:80px;">気配りを感じた</span>
+      <span class="bar-lbl" style="width:88px;font-size:12px;">気持ち良かった</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${satPct}%;background:#1D9E75"></div></div>
       <span class="bar-cnt">${d.satisfied}件（${satPct}%）</span>
     </div>
     <div class="bar-row">
       <span class="bar-emoji">😐</span>
-      <span class="bar-lbl" style="width:80px;">特になかった</span>
+      <span class="bar-lbl" style="width:88px;font-size:12px;">普通だった</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${neuPct}%;background:${neuPct >= BASELINE_NEU ? '#e08000' : '#7a8fa6'}"></div></div>
       <span class="bar-cnt">${d.neutral}件（${neuPct}%）</span>
     </div>
     <div class="bar-row">
       <span class="bar-emoji">😞</span>
-      <span class="bar-lbl" style="width:80px;">不快と感じた</span>
+      <span class="bar-lbl" style="width:88px;font-size:12px;">気になった</span>
       <div class="bar-bg"><div class="bar-fill" style="width:${disPct}%;background:#D85A30"></div></div>
       <span class="bar-cnt">${d.dissatisfied}件（${disPct}%）</span>
     </div>
   </div>
 
   <div class="trend-card">
-    <div class="card-title">ポジティブ率トレンド（気配りを感じた ÷ 全体）<span style="font-size:10px;color:#9aaabb;margin-left:6px;">${pLabel}</span></div>
+    <div class="card-title">ポジティブ率トレンド（気持ち良かった ÷ 全体）<span style="font-size:10px;color:#9aaabb;margin-left:6px;">${pLabel}</span></div>
     <div class="trend-svg-wrap">${trendSvg}</div>
   </div>
 
@@ -588,7 +588,7 @@ function renderHourly(d) {
   }).join('');
 
   const total    = d.satisfied + d.neutral + d.dissatisfied;
-  // ポジティブ率：気配りを感じた ÷ 全体
+  // ポジティブ率：気持ち良かった ÷ 全体
   const positive = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
   // 平均スコア
   const avgScore = total > 0 ? ((d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total).toFixed(2) : '-';
@@ -612,7 +612,7 @@ function renderHourly(d) {
       <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
         <div class="kpi-value ${posClass}">${positive}%</div>${diffHHtml}
       </div>
-      <div class="kpi-sub kpi-gray">気配りを感じた ÷ 全体</div>
+      <div class="kpi-sub kpi-gray">気持ち良かった ÷ 全体</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">累計 総回答数</div>
@@ -661,7 +661,7 @@ function renderWeekday(d) {
   }).join('');
 
   const total = d.satisfied + d.neutral + d.dissatisfied;
-  // ポジティブ率：気配りを感じた ÷ 全体
+  // ポジティブ率：気持ち良かった ÷ 全体
   const positive = total > 0 ? Math.round(d.satisfied / total * 100) : 0;
   // 平均スコア
   const avgScoreW = total > 0 ? ((d.satisfied*3 + d.neutral*2 + d.dissatisfied*1) / total).toFixed(2) : '-';
